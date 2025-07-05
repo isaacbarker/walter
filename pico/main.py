@@ -102,7 +102,7 @@ def save_watering() -> None:
     response = requests.post("http://192.168.1.218:5500/water", data=json.dumps(data), headers=headers)
     response.close()
 
-def water() -> None:
+async def water() -> None:
     # water plant until moisture reaches target
     print("Watering plant...")
     pump.value(1)
@@ -112,7 +112,7 @@ def water() -> None:
         if relative_moisture > config.SOIL_TARGET:
             break
 
-        time.sleep_ms(100)
+        await asyncio.sleep_ms(100)
 
     pump.value(0)
     print("Plant watering complete!")
