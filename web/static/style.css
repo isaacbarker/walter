@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
+:root {
+    --gray: #57697d;
+    --blue-dark: #296da9;
+    --blue-light: #9CC1D9;
+    --cream: #f1e3d7;
+}
+
+body, html {
+    padding: 0;
+    margin: 0;
+    font-family: "Roboto", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+    "wdth" 100;
+    background-color: var(--cream);
+}
+
+.app__wrapper {
+    width: 100vw;
+    height: 100svh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app__container {
+    text-align: left;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px #296da92a;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 1em;
+    margin: .5em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+h1 {
+    font-family: "Bitcount Grid Double", system-ui;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+    "slnt" 0,
+    "CRSV" 0.5,
+    "ELSH" 0,
+    "ELXP" 0;
+    color: var(--blue-dark);
+    font-size: 5rem;
+    margin: 0;
+}
+
+.stats {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.stat:first-child {
+    padding-right: 1em;
+}
+
+.stat {
+    margin: 0 0 1em 0;
+}
+
+p {
+    color: var(--gray);
+}
+
+.countdown {
+    position: absolute;
+    width: 100vw;
+    bottom: 0;
+    text-align: center;
+    font-size: small;
+}

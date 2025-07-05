@@ -1,0 +1,10 @@
+bin
+include
+lib
+pyvenv.cfg
+readings.db
+.vscode
+.micropico
+config.py
+sh1106.py
+.env
