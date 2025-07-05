@@ -141,7 +141,7 @@ async def loop() -> None:
         relative_moisture = get_reading()
 
         if relative_moisture <= config.SOIL_THRESHOLD:
-            water()
+            await water()
             last_watered = time.time()
             relative_moisture = get_reading() # update new moisture level
             save_watering()
