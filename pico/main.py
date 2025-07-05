@@ -1,4 +1,4 @@
-from machine import Pin, I2C, ADC, 
+from machine import Pin, I2C, ADC
 import time
 import framebuf
 import uasyncio as asyncio
