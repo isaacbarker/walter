@@ -56,6 +56,10 @@ def connect(ssid: str, psk: str, country="GB", max_wait=30) -> network.WLAN:
 connect(config.SSID, config.PSK, config.COUNTRY) # connect to network
 ntptime.settime() # calibrate RTC
 
+# ensure API_ROUTE has trailing /
+if not config.API_ROUTE.endswith("/"):
+    config.API_ROUTE += "/"
+
 """Reading Update System"""
 def get_reading() -> int:
     # return relative soil moisture
@@ -77,12 +81,12 @@ def save_reading(soil_moisture: int) -> None:
     print("Sending reading data to server: " + str(data))
     
     # send request to server
-    response = requests.post("http://192.168.1.218:5500/reading", data=json.dumps(data), headers=headers)
+    response = requests.post(f"{config.API_ROUTE}reading", data=json.dumps(data), headers=headers)
     response.close()
 
 """Watering System"""
 def get_last_watered() -> int:
-    response = requests.get("http://192.168.1.218:5500/water")
+    response = requests.get(f"{config.API_ROUTE}water")
     last_watered = response.json().get("last_watered", 0)
     return last_watered
 
@@ -99,7 +103,7 @@ def save_watering() -> None:
     print("Sending water data to server: " + str(data))
     
     # send request to server
-    response = requests.post("http://192.168.1.218:5500/water", data=json.dumps(data), headers=headers)
+    response = requests.post(f"{config.API_ROUTE}water", data=json.dumps(data), headers=headers)
     response.close()
 
 async def water() -> None:
@@ -107,12 +111,7 @@ async def water() -> None:
     print("Watering plant...")
     pump.value(1)
     
-    while True:
-        relative_moisture = get_reading()
-        if relative_moisture > config.SOIL_TARGET:
-            break
-
-        await asyncio.sleep_ms(100)
+    await asyncio.sleep_ms(config.WATER_DURATION)
 
     pump.value(0)
     print("Plant watering complete!")
@@ -154,5 +153,3 @@ async def loop() -> None:
 
 if __name__ == "__main__":
     asyncio.run(loop())
-    
-
