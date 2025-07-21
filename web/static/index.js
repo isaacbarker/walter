@@ -92,7 +92,7 @@ const lastWatered = document.getElementById("water");
 const countdown = document.getElementById("countdown")
 
 // poll every 10s for new data
-const interval = 1/6 * 60 * 1000
+const interval = 1 * 60 * 1000
 let dataRange = 12 * 60 * 60;
 let nextPollTime = Date.now();
 
@@ -147,13 +147,13 @@ const getData = () => {
                 labels.push(time_ms)
             }
 
-            const last_reading = readings[readings.length - 1]
-            soilMoisture.innerHTML = `Soil Moisture: ${last_reading["soil_moisture"]}%`
-
             chart.data.labels = labels;
             chart.data.datasets[0].data = data;
             console.info("Refreshed readings from server: updating graph with results.")
             chart.update()
+
+            const last_reading = readings[readings.length - 1]
+            soilMoisture.innerHTML = `Soil Moisture: ${last_reading["soil_moisture"]}%`
             
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));
