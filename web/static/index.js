@@ -116,7 +116,7 @@ const getData = () => {
     }, 1000)
 
     // get last 3 hrs of readings
-    fetch(`/reading?since=${1 * 60 * 60}`)
+    fetch(`/reading?since=${12 * 60 * 60}`)
         .then(response => response.json())
         .then(readings => {
             let labels = [];
@@ -146,9 +146,11 @@ const getData = () => {
         .then(data => {
             const lastWateredMs = data["last_watered"] * 1000
             const date = new Date(lastWateredMs)
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            lastWatered.innerHTML = `Last Watered: ${hours}:${minutes}`
+            const day = date.getDate();
+            const month = date.toLocaleString('default', { month: 'long' }); // e.g., "July"
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            lastWatered.innerHTML = `Last Watered: ${day} ${month} ${hours}:${minutes}`
             console.info("Refreshed last watered from server")
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));

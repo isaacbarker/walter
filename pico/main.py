@@ -64,7 +64,7 @@ if not config.API_ROUTE.endswith("/"):
 def get_reading() -> int:
     # return relative soil moisture
     pd = soil_sensor.read_u16() * 3.3 / 65535
-    relative_moisture = 100 - (pd - config.SOIL_WET_BOUNDARY) / (config.SOIL_DRY_BOUNDARY - config.SOIL_WET_BOUNDARY) * 100
+    relative_moisture = 100 - ((pd - config.SOIL_WET_BOUNDARY) / (config.SOIL_DRY_BOUNDARY - config.SOIL_WET_BOUNDARY) * 100)
     return relative_moisture
 
 def save_reading(soil_moisture: int) -> None:
@@ -124,8 +124,14 @@ def update_display(soil_moisture: int, last_watered: int) -> None:
 
     # update soil moisture value and last watered on display
     display.text(f"Moisture {round(soil_moisture)}%", 8, 32)
-    _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + (60 * 60 * config.TZ))
-    display.text(f"Watered: {(hour):02}:{minute:02}", 8, 48)
+
+    if (time.time() - last_watered) > 24 * 60 * 60: # display no. days since watering
+        delta_t = time.time() - last_watered
+        days = round(delta_t // (24 * 60 * 60))
+        display.text(f"Watered: {days}d", 8, 48)
+    else: # display time since watering
+        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + (60 * 60 * config.TZ))
+        display.text(f"Watered: {(hour):02}:{minute:02}", 8, 48)
 
     # commit changes
     display.show()
@@ -139,7 +145,10 @@ async def loop() -> None:
         # take soil moisture reading and interpret whether watering should occur
         relative_moisture = get_reading()
 
-        if relative_moisture <= config.SOIL_THRESHOLD:
+        # only water during daylight hours
+        _, _, _, hour, _, _, _, _ = time.localtime(time.time() + (60 * 60 * config.TZ))
+
+        if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 17:
             await water()
             last_watered = time.time()
             relative_moisture = get_reading() # update new moisture level
