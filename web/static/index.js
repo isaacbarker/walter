@@ -91,32 +91,50 @@ const soilMoisture = document.getElementById("soil");
 const lastWatered = document.getElementById("water");
 const countdown = document.getElementById("countdown")
 
-// poll every 5 mins for new data
+// poll every 10s for new data
 const interval = 1/6 * 60 * 1000
+let dataRange = 12 * 60 * 60;
+let nextPollTime = Date.now();
+
+let intervalCountdownId;
+let intervalLoopId;
+
+// get dataRange
+const dataRangeSelect = document.getElementById("data-range");
+
+dataRangeSelect.addEventListener('change', () => {
+    dataRange = dataRangeSelect.value * 60 * 60;
+    // reset
+    clearInterval(intervalLoopId);
+    getData();
+    intervalId = setInterval(getData, interval)
+})
 
 // grab data from source and prep for chart
 const getData = () => {
+    nextPollTime = Date.now() + interval;
 
-    // start countdown until next poll
-    let timeLeftMs = interval
+    // clear any existing countdown first
+    if (intervalCountdownId) clearInterval(intervalCountdownId);
 
-    const intervalId = setInterval(() => {
-        timeLeftS = timeLeftMs / 1000;
-        minutes = Math.floor(timeLeftS / 60).toString().padStart(2, '0');
-        seconds = (timeLeftS % 60).toString().padStart(2, '0');
-        
-        if (timeLeftS <= 0) {
+    // start countdown display
+    intervalCountdownId = setInterval(() => {
+        const now = Date.now();
+        let timeLeftMs = nextPollTime - now;
+
+        if (timeLeftMs <= 0) {
             countdown.innerHTML = "Time to next refresh: 00:00";
-            clearInterval(intervalId); // stop the countdown
             return;
         }
-        
-        countdown.innerHTML = `Time to next refresh: ${minutes}:${seconds}`
-        timeLeftMs -= 1000;
-    }, 1000)
 
-    // get last 3 hrs of readings
-    fetch(`/reading?since=${1 * 60 * 60}`)
+        const timeLeftS = Math.floor(timeLeftMs / 1000);
+        const minutes = Math.floor(timeLeftS / 60).toString().padStart(2, '0');
+        const seconds = (timeLeftS % 60).toString().padStart(2, '0');
+        countdown.innerHTML = `Time to next refresh: ${minutes}:${seconds}`;
+    }, 1000);
+
+    // get data since the range
+    fetch(`/reading?since=${dataRange}`)
         .then(response => response.json())
         .then(readings => {
             let labels = [];
@@ -156,4 +174,4 @@ const getData = () => {
 
 getData();
 
-setInterval(getData, interval)
+intervalLoopId = setInterval(getData, interval)

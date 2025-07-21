@@ -19,7 +19,15 @@
             <canvas id="chart" height="200px"></canvas>
         </div>
     </div>
-    <p id="countdown" class="countdown"></p>
+    <div class="footer__wrapper">
+        <select class="data-range" id="data-range">
+            <option value="3">3h</option>
+            <option value="12" selected="selected">12h</option>
+            <option value="48">48h</option>
+            <option value="730">1mo</option>
+        </select>
+        <p id="countdown" class="countdown"></p>
+    </div>
     <script src="{{ url_for('static', filename='index.js' )}}"></script>
 </body>
 </html>

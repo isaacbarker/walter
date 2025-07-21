@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 :root {
-    --gray: #57697d;
+    --gray: #98a9bc;
     --blue-dark: #296da9;
     --blue-light: #9CC1D9;
-    --cream: #f1e3d7;
+    --bg: #06081b;
 }
 
 body, html {
@@ -16,7 +16,7 @@ body, html {
     font-style: normal;
     font-variation-settings:
     "wdth" 100;
-    background-color: var(--cream);
+    background-color: var(--bg);
 }
 
 .app__wrapper {
@@ -29,7 +29,7 @@ body, html {
 
 .app__container {
     text-align: left;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--bg);
     border-radius: 16px;
     box-shadow: 0 4px 30px #296da92a;
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -61,6 +61,7 @@ h1 {
     justify-content: flex-start;
     align-items: center;
     flex-wrap: wrap;
+    text-align: center;
 }
 
 .stat:first-child {
@@ -75,10 +76,29 @@ p {
     color: var(--gray);
 }
 
-.countdown {
-    position: absolute;
+.footer__wrapper {
     width: 100vw;
+    position: absolute;
     bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: .5em;
+}
+
+.data-range {
+    margin-right: 1em;
+    background-color: var(--bg);
+    outline: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 30px #296da92a;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: var(--gray);
+    padding: .5em;
+}
+
+.countdown {
     text-align: center;
     font-size: small;
+    color: var(--gray);
 }
