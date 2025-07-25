@@ -148,7 +148,7 @@ async def loop() -> None:
         # only water during daylight hours
         _, _, _, hour, _, _, _, _ = time.localtime(time.time() + (60 * 60 * config.TZ))
 
-        if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 17:
+        if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 21:
             await water()
             last_watered = time.time()
             relative_moisture = get_reading() # update new moisture level
