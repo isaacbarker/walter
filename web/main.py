@@ -1,6 +1,14 @@
 import time
 import os
 import sqlite3
+import smtplib
+import datetime
+import email
+from pathlib import Path
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv, find_dotenv
 from flask import Flask, request, jsonify, render_template
 
@@ -10,6 +18,12 @@ SECRET_TOKEN = os.getenv("SECRET_TOKEN") # pwd on pico for db updates
 DB_PATH = "readings.db"
 
 app = Flask(__name__)
+
+"""Set up email notifications"""
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 0))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
+SMTP_PWD = os.getenv("SMTP_PWD", "")
 
 """Root UI with polling system for data fetching"""
 @app.route("/", methods=["GET"])
@@ -118,9 +132,39 @@ def water():
 
                 cur.execute(insert_query, water_data)
                 conn.commit()
+
         except Exception:
             return jsonify(error="Invalid data format"), 400
+        
+        # import html template
+        BASE_DIR = Path(__file__).parent
+        template_path = BASE_DIR / "templates" / "email.html"
+        html_template = template_path.read_text(encoding="utf-8")
+        
+        # format time
+        dt = datetime.datetime.fromtimestamp(time_stamp)
+        time_str = dt.strftime("%H:%M")
+        html_body = html_template.replace("{{ time }}", time_str)
 
+        # send email to notify of watering
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"WALTER WATERED {time_str}"
+        msg["From"] = "walter@isaacbarker.net"
+
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        recipients = os.getenv("NOTIFY_EMAILS", "").split(",")
+        
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+            smtp.starttls()
+            smtp.login(SMTP_USERNAME, SMTP_PWD)
+            for address in recipients:
+                msg["To"] = address
+                smtp.sendmail(
+                    "walter@isaacbarker.net",
+                    address,
+                    msg.as_string()
+                )
         return jsonify(status="ok"), 200
     
     elif request.method == "GET":
