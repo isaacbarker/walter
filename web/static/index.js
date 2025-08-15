@@ -92,7 +92,7 @@ const lastWatered = document.getElementById("water");
 const countdown = document.getElementById("countdown")
 
 // poll every 10s for new data
-const interval = 1/6 * 60 * 1000
+const interval = 1 * 60 * 1000
 let dataRange = 12 * 60 * 60;
 let nextPollTime = Date.now();
 
@@ -147,13 +147,13 @@ const getData = () => {
                 labels.push(time_ms)
             }
 
-            const last_reading = readings[readings.length - 1]
-            soilMoisture.innerHTML = `Soil Moisture: ${last_reading["soil_moisture"]}%`
-
             chart.data.labels = labels;
             chart.data.datasets[0].data = data;
             console.info("Refreshed readings from server: updating graph with results.")
             chart.update()
+
+            const last_reading = readings[readings.length - 1]
+            soilMoisture.innerHTML = `Soil Moisture: ${last_reading["soil_moisture"]}%`
             
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));
@@ -164,9 +164,11 @@ const getData = () => {
         .then(data => {
             const lastWateredMs = data["last_watered"] * 1000
             const date = new Date(lastWateredMs)
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            lastWatered.innerHTML = `Last Watered: ${hours}:${minutes}`
+            const day = date.getDate();
+            const month = date.toLocaleString('default', { month: 'long' }); // e.g., "July"
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            lastWatered.innerHTML = `Last Watered: ${day} ${month} ${hours}:${minutes}`
             console.info("Refreshed last watered from server")
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));

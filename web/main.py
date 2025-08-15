@@ -17,6 +17,11 @@ load_dotenv(find_dotenv())
 SECRET_TOKEN = os.getenv("SECRET_TOKEN") # pwd on pico for db updates
 DB_PATH = "readings.db"
 
+def str_to_bool(value: str) -> bool:
+    return value.lower() in ("true", "1", "yes", "on")
+
+WATER_ENABLED = str_to_bool(os.getenv("WATER_ENABLED", "false"))
+
 app = Flask(__name__)
 
 """Set up email notifications"""
@@ -185,6 +190,11 @@ def water():
         data = {"last_watered": time_stamp}
 
         return jsonify(data)
+    
+""" Water enabled or disabled route """
+@app.route("/can-water", methods=["GET"])
+def can_water():
+    return jsonify(enabled=WATER_ENABLED, status="ok"), 200
 
 if __name__ == "__main__":
     # init db and insert suitable table to log readings
