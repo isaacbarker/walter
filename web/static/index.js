@@ -1,18 +1,13 @@
 // init chart
-const canvas = document.getElementById("chart");
+const canvas = document.getElementById("soilMoisture");
 const ctx = canvas.getContext("2d");
 
 // scale canvas to screen width
-if (window.innerWidth < 1920) {
+if (window.innerWidth < 1080) {
     canvas.width = 0.75 * window.innerWidth;
 } else {
     canvas.width = 900; 
 }
-
-// configure linear gradient for line area fill
-const fillGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-fillGradient.addColorStop(0, "#296da999");
-fillGradient.addColorStop(1, "#9CC1D922");
 
 let chart = new Chart(ctx, {
     type: "line",
@@ -21,8 +16,7 @@ let chart = new Chart(ctx, {
         datasets: [{
             data: [],
             fill: true,
-            borderColor: '#296da999',
-            backgroundColor: fillGradient,
+            borderColor: '#8ec07c',
             tension: 0.1
         }]
     },
@@ -52,29 +46,27 @@ let chart = new Chart(ctx, {
                     display: false
                 },
                 border: {
-                    color: '#57697d'
+                    color: '#fbf1c7'
                 },
                 ticks: {
                     source: "auto",
-                    color: '#57697d'
+                    color: '#fbf1c7'
                 },
             },
             y: {
                 title: {
                     text: "Soil Moisture / %",
                     display: true,
-                    color: '#57697d'
+                    color: '#fbf1c7'
                 },
                 ticks: {
-                    color: '#57697d'
+                    color: '#fbf1c7'
                 },
-                min: 0,
-                max: 100,
                 grid: {
                     display: false
                 },
                 border: {
-                    color: '#57697d'
+                    color: '#fbf1c7'
                 },
             }
         },
@@ -153,7 +145,7 @@ const getData = () => {
             chart.update()
 
             const last_reading = readings[readings.length - 1]
-            soilMoisture.innerHTML = `Soil Moisture: ${last_reading["soil_moisture"]}%`
+            soilMoisture.innerHTML = `${last_reading["soil_moisture"]}%`
             
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));
@@ -165,10 +157,11 @@ const getData = () => {
             const lastWateredMs = data["last_watered"] * 1000
             const date = new Date(lastWateredMs)
             const day = date.getDate();
-            const month = date.toLocaleString('default', { month: 'long' }); // e.g., "July"
+            const month = String(date.getMonth()).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(2,4)
             const hours = String(date.getHours()).padStart(2, '0');
             const minutes = String(date.getMinutes()).padStart(2, '0');
-            lastWatered.innerHTML = `Last Watered: ${day} ${month} ${hours}:${minutes}`
+            lastWatered.innerHTML = `${day}/${month}/${year} ${hours}:${minutes}`
             console.info("Refreshed last watered from server")
         })
         .catch(err => console.error(`Error occured when polling data: ${err}`));
