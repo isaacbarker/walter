@@ -7,3 +7,9 @@ __pycache__
 readings.db
 .gitignore
 .env
+bin
+include 
+lib 
+.micropico
+sh1106.py
+walter-web.tar
