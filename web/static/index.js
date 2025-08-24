@@ -6,7 +6,7 @@ const ctx = canvas.getContext("2d");
 if (window.innerWidth < 1080) {
     canvas.width = 0.75 * window.innerWidth;
 } else {
-    canvas.width = 900; 
+    canvas.width = 800; 
 }
 
 let chart = new Chart(ctx, {
