@@ -5,29 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <title>WALTER</title>
 </head>
 <body>
-    <div class="app__wrapper">
-        <div class="app__container">
-            <h1>WALTER</h1>
-            <div class="stats">
-                <p class="stat" id="soil">Soil Moisture:</p>
-                <p class="stat" id="water">Last Watered:</p>
+    <div class="wrapper">
+        <div class="container">
+            <div class="header">
+                <div class="header__title__container">
+                    <h1 class="header__title">WALTER</h1>
+                    <p class="header__slogan">The plant walterer.</p>
+                </div>
+                <div class="header__data__wrapper">
+                    <div class="header__data__container">
+                        <span class="material-symbols-outlined icon icon--blue">humidity_percentage</span>
+                        <p class="header__stat" id="soil"></p>
+                    </div>
+                    <div class="header__data__container">
+                        <span class="material-symbols-outlined icon icon--blue">sprinkler</span>
+                        <p class="header__stat" id="water"></p>
+                    </div>
+                </div>
             </div>
-            <canvas id="chart" height="200px"></canvas>
+            <div class="moisture__container">
+                <h2>Soil Moisture</h2>
+                <canvas id="soilMoisture"></canvas>
+            </div>
+            <div class="controls__container">
+                <select class="data-range" id="data-range">
+                    <option value="3">3h</option>
+                    <option value="12" selected="selected">12h</option>
+                    <option value="48">48h</option>
+                    <option value="730">1mo</option>
+                </select>
+                <p id="countdown" class="countdown"></p>
+            </div>
         </div>
-    </div>
-    <div class="footer__wrapper">
-        <select class="data-range" id="data-range">
-            <option value="3">3h</option>
-            <option value="12" selected="selected">12h</option>
-            <option value="48">48h</option>
-            <option value="730">1mo</option>
-        </select>
-        <p id="countdown" class="countdown"></p>
     </div>
     <script src="{{ url_for('static', filename='index.js' )}}"></script>
 </body>
