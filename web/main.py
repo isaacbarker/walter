@@ -3,10 +3,7 @@ import os
 import sqlite3
 import smtplib
 import datetime
-import email
 from pathlib import Path
-from email import encoders
-from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv, find_dotenv
@@ -220,5 +217,5 @@ if __name__ == "__main__":
 
         conn.commit()
 
-    # run app
-    app.run("0.0.0.0", 5500, debug=True)
+if __name__ == "__main__":
+    app.run()

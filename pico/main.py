@@ -90,6 +90,11 @@ def get_last_watered() -> int:
     last_watered = response.json().get("last_watered", 0)
     return last_watered
 
+def get_can_water() -> bool:
+    response = requests.get(f"{config.API_ROUTE}can-water")
+    can_water = response.json().get("enabled")
+    return can_water
+
 def save_watering() -> None:
     headers = {
         "Authorization": f"Bearer {config.SECRET_TOKEN}",
@@ -107,6 +112,11 @@ def save_watering() -> None:
     response.close()
 
 async def water() -> None:
+    # only allow watering when enabled by server
+    if not get_can_water():
+        print("Attempted watering but disabled by server!")
+        return
+
     # water plant until moisture reaches target
     print("Watering plant...")
     pump.value(1)
