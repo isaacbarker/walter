@@ -2,6 +2,8 @@
 
 <img width="750" alt="Image" src="./screenshots/web-screenshot.png" />
 
+_To see an example of the operating project go to: [walterbot.uk](https://walterbot.uk)_
+
 ### About The Project
 
 WALTER is a automatic plant irrigation system that works using a Raspberry Pi PICO.
