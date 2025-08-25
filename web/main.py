@@ -4,10 +4,11 @@ import sqlite3
 import smtplib
 import datetime
 from pathlib import Path
+from email.utils import formataddr
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv, find_dotenv
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 
 load_dotenv(find_dotenv())
 
@@ -26,6 +27,14 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 0))
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
 SMTP_PWD = os.getenv("SMTP_PWD", "")
+DOMAIN = os.getenv("DOMAIN")
+EMAIL_NAME = os.getenv("EMAIL_NAME")
+EMAIL_ADDR = os.getenv("EMAIL_ADDR")
+
+""" robots.txt serve on root"""
+@app.route('/robots.txt')
+def static_from_root():
+    return send_from_directory(app.static_folder, request.path[1:])
 
 """Root UI with polling system for data fetching"""
 @app.route("/", methods=["GET"])
@@ -48,7 +57,7 @@ def reading():
             data = request.get_json()
 
             if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), (int)):
-                jsonify(error="Reading incorrectly formatted"), 400
+                return jsonify(error="Reading incorrectly formatted"), 400
 
 
             time_stamp = data.get("time")
@@ -118,7 +127,7 @@ def water():
             data = request.get_json()
 
             if not isinstance(data.get("time"), (int)):
-                jsonify(error="Event incorrectly formatted"), 400
+                return jsonify(error="Event incorrectly formatted"), 400
 
             time_stamp = data.get("time")
 
@@ -137,7 +146,7 @@ def water():
 
         except Exception:
             return jsonify(error="Invalid data format"), 400
-        
+                
         # import html template
         BASE_DIR = Path(__file__).parent
         template_path = BASE_DIR / "templates" / "email.html"
@@ -146,12 +155,12 @@ def water():
         # format time
         dt = datetime.datetime.fromtimestamp(time_stamp)
         time_str = dt.strftime("%H:%M")
-        html_body = html_template.replace("{{ time }}", time_str)
+        html_body = html_template.replace("{{ time }}", time_str).replace("{{ domain }}", DOMAIN)
 
         # send email to notify of watering
         msg = MIMEMultipart("alternative")
         msg["Subject"] = f"WALTER WATERED {time_str}"
-        msg["From"] = "walter@isaacbarker.net"
+        msg["From"] = formataddr((EMAIL_NAME, EMAIL_ADDR))
 
         msg.attach(MIMEText(html_body, "html", "utf-8"))
 
