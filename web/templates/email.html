@@ -1,39 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>WALTER Watered</title>
+  <meta charset="UTF-8">
+  <title>WALTER</title>
 </head>
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Bitcount+Grid+Double:wght@100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
-
-    h1 {
-        font-family: 'Bitcount Grid Double', Arial, sans-serif;
-        font-optical-sizing: auto;
-        font-weight: 400;
-        font-style: normal;
-        font-variation-settings:
-        "slnt" 0,
-        "CRSV" 0.5,
-        "ELSH" 0,
-        "ELXP" 0;
-    }
-</style>
-<body style="margin:0; padding:0; background-color:#06081b; font-family: Arial, sans-serif; color:#98a9bc;">
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#06081b; padding:20px;">
-        <tr>
-            <td align="center">
-                <table width="100%" max-width="500" cellpadding="0" cellspacing="0" border="0" style="background-color:#06081b; border-radius:16px; border:2px solid rgba(255,255,255,0.3); padding:20px;">
-                    <tr>
-                        <td align="center">
-                            <h1 style="color:#296da9; font-size:50px; margin:0 0 10px 0;">WALTER</h1>
-                            <p style="margin:0 0 20px 0;">I was watered at {{ time }}, please check my reservoir.</p>
-                            <a href="https://walter.isaacbarker.net" style="color:#9CC1D9; text-decoration:none;">from WALTER</a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+<body style="margin:0; padding:0; background-color:#282828; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fbf1c7;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#282828; padding: 20px;">
+    <tr>
+      <td align="center">
+        <!-- Logo -->
+        <img src="{{ domain }}/static/logo.png" alt="Walter" width="200" style="display:block; max-width:200px; height:auto; font-size: 32px; font-family: Arial, Helvetica, sans-serif; font-weight: bold; color: #8ec07c;">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 20px 0; color: #fbf1c7; font-size: 16px; line-height: 24px;">
+        Walter watered at <strong>{{ time }}</strong>.<br>
+        Please check the reservoir to ensure enough water is present next time.
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <!-- Button -->
+        <a href="{{ domain }}/"
+           style="color:#fbf1c7; text-decoration: underline; font-size: 16px;">
+           View more
+        </a>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

@@ -23,24 +23,17 @@ let chart = new Chart(ctx, {
     options: {
         responsive: false,
         maintainAspectRatio: true,
-        animations: {
-            tension: {
-                duration: 1000,
-                easing: 'linear',
-                from: 0,
-                to: 0.5,
-                loop: true
-            }
-        },
         scales: {
             x: {
                 type: "time",
                 time: {
-                    unit: "minute",
-                    stepSize: 30,
+                    tooltipFormat: "dd/MM/yyyy HH:mm", // hover format
                     displayFormats: {
                         minute: "HH:mm",
-                    },
+                        hour: "dd/MM HH:mm",
+                        day: "dd/MM/yyyy",
+                        month: "MMM yyyy"
+                    }
                 },
                 grid: {
                     display: false
@@ -51,7 +44,7 @@ let chart = new Chart(ctx, {
                 ticks: {
                     source: "auto",
                     color: '#fbf1c7'
-                },
+                }
             },
             y: {
                 title: {
@@ -73,6 +66,11 @@ let chart = new Chart(ctx, {
         plugins: {
             legend:  {
                 display: false
+            },
+            decimation: {
+                enabled: true,
+                algorithm: 'min-max', // preserves peaks and valleys
+                samples: 100 // keep ~200 points max
             }
         }
     },
