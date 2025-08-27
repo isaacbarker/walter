@@ -56,6 +56,12 @@ def connect(ssid: str, psk: str, country="GB", max_wait=30) -> network.WLAN:
 connect(config.SSID, config.PSK, config.COUNTRY) # connect to network
 ntptime.settime() # calibrate RTC
 
+# get timezone offset from server
+def get_tz_offset() -> float:
+    response = requests.get(f"{config.API_ROUTE}timezone")
+    offset = response.json().get("local_offset", 0)
+    return offset
+
 # ensure API_ROUTE has trailing /
 if not config.API_ROUTE.endswith("/"):
     config.API_ROUTE += "/"
@@ -140,7 +146,8 @@ def update_display(soil_moisture: int, last_watered: int) -> None:
         days = round(delta_t // (24 * 60 * 60))
         display.text(f"Watered: {days}d", 8, 48)
     else: # display time since watering
-        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + (60 * 60 * config.TZ))
+        local_offset = get_tz_offset()
+        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + local_offset)
         display.text(f"Watered: {(hour):02}:{minute:02}", 8, 48)
 
     # commit changes
