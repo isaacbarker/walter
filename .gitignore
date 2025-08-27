@@ -13,3 +13,4 @@ lib
 .micropico
 sh1106.py
 walter-web.tar
+config.py
