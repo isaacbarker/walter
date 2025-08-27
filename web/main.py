@@ -3,6 +3,7 @@ import os
 import sqlite3
 import smtplib
 import datetime
+import pytz
 from pathlib import Path
 from email.utils import formataddr
 from email.mime.text import MIMEText
@@ -197,10 +198,16 @@ def water():
 
         return jsonify(data)
     
-""" Water enabled or disabled route """
+"""Water enabled or disabled route"""
 @app.route("/can-water", methods=["GET"])
 def can_water():
     return jsonify(enabled=WATER_ENABLED, status="ok"), 200
+
+"""Time Keeping Route"""
+@app.route("/timezone", methods=["GET"])
+def get_time():
+    dt_tz = datetime.datetime.now().astimezone()
+    return jsonify(local_offset=dt_tz.utcoffset().total_seconds())
 
 if __name__ == "__main__":
     # init db and insert suitable table to log readings
