@@ -1,5 +1,4 @@
 # network configuration
-TZ = 1 # e.g. BST (+1) or GMT (0)
 SSID = "your-wifi-name"
 PSK = "your-wifi-password"
 SECRET_TOKEN = "secret_token"
