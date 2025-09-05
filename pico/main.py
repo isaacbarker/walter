@@ -59,7 +59,7 @@ ntptime.settime() # calibrate RTC
 # get timezone offset from server
 def get_tz_offset() -> float:
     response = requests.get(f"{config.API_ROUTE}timezone")
-    offset = response.json().get("local_offset", 0)
+    offset = response.json().get("local_offset", 0.0)
     return offset
 
 # ensure API_ROUTE has trailing /
@@ -133,7 +133,7 @@ async def water() -> None:
     print("Plant watering complete!")
 
 """OLED Display System"""
-def update_display(soil_moisture: int, last_watered: int) -> None:
+def update_display(soil_moisture: int, last_watered: int, local_offset: float) -> None:
     # add logo template to display
     template = framebuf.FrameBuffer(bytearray(buf), config.DISPLAY_WIDTH, config.DISPLAY_HEIGHT, framebuf.MONO_HLSB)
     display.blit(template, 0, 0)
@@ -146,8 +146,7 @@ def update_display(soil_moisture: int, last_watered: int) -> None:
         days = round(delta_t // (24 * 60 * 60))
         display.text(f"Watered: {days}d", 8, 48)
     else: # display time since watering
-        local_offset = get_tz_offset()
-        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + local_offset)
+        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + int(local_offset))
         display.text(f"Watered: {(hour):02}:{minute:02}", 8, 48)
 
     # commit changes
@@ -163,7 +162,8 @@ async def loop() -> None:
         relative_moisture = get_reading()
 
         # only water during daylight hours
-        _, _, _, hour, _, _, _, _ = time.localtime(time.time() + (60 * 60 * config.TZ))
+        local_offset = get_tz_offset()
+        _, _, _, hour, _, _, _, _ = time.localtime(time.time() + int(local_offset))
 
         if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 21:
             await water()
@@ -173,7 +173,7 @@ async def loop() -> None:
 
         # update displays
         save_reading(relative_moisture)
-        update_display(relative_moisture, last_watered)
+        update_display(relative_moisture, last_watered, local_offset)
 
         await asyncio.sleep_ms(config.SAMPLE_INTERVAL)
 
