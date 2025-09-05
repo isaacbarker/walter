@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WALTER</title>
+</head>
+<body style="margin:0; padding:0; background-color:#282828; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #fbf1c7;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#282828; padding: 20px;">
+    <tr>
+      <td align="center">
+        <!-- Logo -->
+        <img src="{{ domain }}/static/logo.png" alt="Walter" width="200" style="display:block; max-width:200px; height:auto; font-size: 32px; font-family: Arial, Helvetica, sans-serif; font-weight: bold; color: #8ec07c;">
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 20px 0; color: #fbf1c7; font-size: 16px; line-height: 24px;">
+        Walter issued a warning at time <strong>{{ time }}</strong>.<br>
+        <strong>{{ error_msg }}<strong>
+      </td>
+    </tr>
+    <tr>
+      <td align="center">
+        <!-- Button -->
+        <a href="{{ domain }}/"
+           style="color:#fbf1c7; text-decoration: underline; font-size: 16px;">
+           View more
+        </a>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

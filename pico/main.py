@@ -118,11 +118,6 @@ def save_watering() -> None:
     response.close()
 
 async def water() -> None:
-    # only allow watering when enabled by server
-    if not get_can_water():
-        print("Attempted watering but disabled by server!")
-        return
-
     # water plant until moisture reaches target
     print("Watering plant...")
     pump.value(1)
@@ -131,6 +126,24 @@ async def water() -> None:
 
     pump.value(0)
     print("Plant watering complete!")
+
+"""Alert/Error system"""
+def alert(error_msg: str) -> None:
+    headers = {
+        "Authorization": f"Bearer {config.SECRET_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "time": time.time(),
+        "error_msg": error_msg
+    }
+
+    print("Sending error data to server: " + str(data))
+    
+    # send request to server
+    response = requests.post(f"{config.API_ROUTE}alert", data=json.dumps(data), headers=headers)
+    response.close()
 
 """OLED Display System"""
 def update_display(soil_moisture: int, last_watered: int, local_offset: float) -> None:
@@ -166,10 +179,19 @@ async def loop() -> None:
         _, _, _, hour, _, _, _, _ = time.localtime(time.time() + int(local_offset))
 
         if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 21:
-            await water()
-            last_watered = time.time()
-            relative_moisture = get_reading() # update new moisture level
-            save_watering()
+            # only allow watering when enabled by server
+            if get_can_water():
+                await water()
+                new_relative_moisture = get_reading() # update new moisture level
+
+                # check watering has been effective
+                if new_relative_moisture <= relative_moisture: # moisture is same or has decreased!
+                    alert("Watering unsuccessful, please check reseviour and/or the pump is attached.")
+                else:
+                    last_watered = time.time()
+                    save_watering()
+
+                relative_moisture = new_relative_moisture
 
         # update displays
         save_reading(relative_moisture)

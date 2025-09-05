@@ -32,7 +32,7 @@ DOMAIN = os.getenv("DOMAIN")
 EMAIL_NAME = os.getenv("EMAIL_NAME")
 EMAIL_ADDR = os.getenv("EMAIL_ADDR")
 
-""" robots.txt serve on root"""
+"""robots.txt serve on root"""
 @app.route('/robots.txt')
 def static_from_root():
     return send_from_directory(app.static_folder, request.path[1:])
@@ -150,7 +150,7 @@ def water():
                 
         # import html template
         BASE_DIR = Path(__file__).parent
-        template_path = BASE_DIR / "templates" / "email.html"
+        template_path = BASE_DIR / "templates" / "water-email.html"
         html_template = template_path.read_text(encoding="utf-8")
         
         # format time
@@ -160,7 +160,7 @@ def water():
 
         # send email to notify of watering
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"WALTER WATERED {time_str}"
+        msg["Subject"] = f"Watered (WALTER) {time_str}"
         msg["From"] = formataddr((EMAIL_NAME, EMAIL_ADDR))
 
         msg.attach(MIMEText(html_body, "html", "utf-8"))
@@ -202,6 +202,59 @@ def water():
 @app.route("/can-water", methods=["GET"])
 def can_water():
     return jsonify(enabled=WATER_ENABLED, status="ok"), 200
+
+"""Error alert route"""
+@app.route("/alert", methods=["POST"])
+def alert():
+    auth_header = request.headers.get("Authorization")
+
+    # check if client has permission to update water logs
+    if auth_header != f"Bearer {SECRET_TOKEN}":
+        return jsonify(error="Authorization invalid"), 401
+    
+    # get log from body
+    try:
+        data = request.get_json()
+
+        if not isinstance(data.get("time"), (int)) or not isinstance(data.get("error"), (str)):
+            return jsonify(error="Event incorrectly formatted"), 400
+
+        time_stamp = data.get("time")
+        error_msg = data.get("error")
+
+    except Exception:
+        return jsonify(error="Invalid data format"), 400
+            
+    # import html template
+    BASE_DIR = Path(__file__).parent
+    template_path = BASE_DIR / "templates" / "error-email.html"
+    html_template = template_path.read_text(encoding="utf-8")
+    
+    # format time
+    dt = datetime.datetime.fromtimestamp(time_stamp)
+    time_str = dt.strftime("%H:%M")
+    html_body = html_template.replace("{{ time }}", time_str).replace("{{ domain }}", DOMAIN).replace("{{ error_msg }}", error_msg)
+
+    # send email to notify of watering
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = f"Warning (WALTER) {time_str}"
+    msg["From"] = formataddr((EMAIL_NAME, EMAIL_ADDR))
+
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    recipients = os.getenv("NOTIFY_EMAILS", "").split(",")
+    
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp.starttls()
+        smtp.login(SMTP_USERNAME, SMTP_PWD)
+        for address in recipients:
+            msg["To"] = address
+            smtp.sendmail(
+                EMAIL_ADDR,
+                address,
+                msg.as_string()
+            )
+    return jsonify(status="ok"), 200
 
 """Time Keeping Route"""
 @app.route("/timezone", methods=["GET"])
