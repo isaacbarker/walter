@@ -34,6 +34,14 @@ def setup_database():
             )
         """)
 
+        # insert settings table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+
         conn.commit()
 
 # Updaters of data
@@ -63,6 +71,17 @@ def add_water(time):
 
         cur.execute(query, (time,))
         conn.commit()
+
+def get_setting(key: str):
+    # Fetch value from setting key
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+
+        cur.execute("""SELECT value FROM settings WHERE key = ?""", (key,))
+
+        row = cur.fetchone()
+
+    return row[0]
 
 # Getters of data
 
@@ -103,4 +122,14 @@ def get_last_watered():
     if len(row) == 0: return None
 
     return {"last_watered": row[0][1]}
+
+def set_setting(key, value):
+    # Updates a setting in the sqlite DB
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO settings (key, value) VALUES (?, ?)
+            ON CONFLICT (key) DO UPDATE SET value = excluded.value
+        """, (key, value))
 

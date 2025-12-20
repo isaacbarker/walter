@@ -9,14 +9,13 @@ from datetime import datetime
 from web.web_helpers.auth_helper import is_authenticated
 from web.web_helpers.database_helper import get_readings, add_reading, get_last_watered, add_water, setup_database
 from web.web_helpers.email_helper import send_success_email, send_error_email
+from web.web_helpers.watering_helper import set_water_enabled, is_water_enabled
 
 # Serves web server for WALTER
 
 # Environment variables
 load_dotenv(find_dotenv(".env"))
-
 SECRET_TOKEN  = os.getenv("SECRET_TOKEN")
-WATER_ENABLED = os.getenv("WATER_ENABLED").lower() in ("true", "1", "yes", "on")
 
 # Initialise Flask App & Basic Auth
 
@@ -132,19 +131,18 @@ def post_water():
 # Water enabled or disabled routes
 @app.route("/water/allowed", methods=["GET"])
 def water_allowed():
-    return jsonify(enabled=WATER_ENABLED), 200
+    return jsonify(enabled=is_water_enabled()), 200
 
 @app.route("/water/off", methods=["POST"])
 @basic_auth.required
 def water_off():
-    global WATER_ENABLED
-    WATER_ENABLED = False
+    set_water_enabled(False)
     return "", 204
 
 @app.route("/water/on", methods=["POST"])
+@basic_auth.required
 def water_on():
-    global WATER_ENABLED
-    WATER_ENABLED = True
+    set_water_enabled(True)
     return "", 204
 
 # Error alerting route to send to mail list
