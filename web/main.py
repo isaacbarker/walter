@@ -1,217 +1,159 @@
-import time
 import os
-import sqlite3
-import smtplib
-import datetime
-import pytz
-from pathlib import Path
-from email.utils import formataddr
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import time
+
 from dotenv import load_dotenv, find_dotenv
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, render_template, jsonify, request
+from flask_basicauth import BasicAuth
+from datetime import datetime
 
-load_dotenv(find_dotenv())
+from web.web_helpers.auth_helper import is_authenticated
+from web.web_helpers.database_helper import get_readings, add_reading, get_last_watered, add_water, setup_database
+from web.web_helpers.email_helper import send_success_email, send_error_email
 
-SECRET_TOKEN = os.getenv("SECRET_TOKEN") # pwd on pico for db updates
-DB_PATH = "readings.db"
+# Serves web server for WALTER
 
-def str_to_bool(value: str) -> bool:
-    return value.lower() in ("true", "1", "yes", "on")
+# Environment variables
+load_dotenv(find_dotenv(".env"))
 
-WATER_ENABLED = str_to_bool(os.getenv("WATER_ENABLED", "false"))
+SECRET_TOKEN  = os.getenv("SECRET_TOKEN")
+WATER_ENABLED = os.getenv("WATER_ENABLED").lower() in ("true", "1", "yes", "on")
+
+# Initialise Flask App & Basic Auth
 
 app = Flask(__name__)
 
-"""Set up email notifications"""
-SMTP_HOST = os.getenv("SMTP_HOST", "")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 0))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-SMTP_PWD = os.getenv("SMTP_PWD", "")
-DOMAIN = os.getenv("DOMAIN")
-EMAIL_NAME = os.getenv("EMAIL_NAME")
-EMAIL_ADDR = os.getenv("EMAIL_ADDR")
+app.config["BASIC_AUTH_USERNAME"] = os.getenv("BASIC_AUTH_USERNAME")
+app.config["BASIC_AUTH_PASSWORD"] = os.getenv("BASIC_AUTH_PASSWORD")
 
-"""robots.txt serve on root"""
-@app.route('/robots.txt')
+basic_auth = BasicAuth(app)
+
+# robots.txt serve on root
+@app.route("/robots.txt")
 def static_from_root():
-    return send_from_directory(app.static_folder, request.path[1:])
+    return app.send_static_file("robots.txt")
 
-"""Root UI with polling system for data fetching"""
+# index route
 @app.route("/", methods=["GET"])
-def root():
+def index():
     return render_template("index.html")
 
-"""Reading logging and polling methods"""
-@app.route("/reading", methods=["GET", "POST"])
-def reading():
-    if request.method == "POST":
-        """Record data and store in db"""
-        auth_header = request.headers.get("Authorization")
+# Dashboard route
+@app.route("/dashboard", methods=["GET"])
+@basic_auth.required
+def dashboard():
+    return render_template("dashboard.html")
 
-        # check if client has permission to update readings
-        if auth_header != f"Bearer {SECRET_TOKEN}":
-            return jsonify(error="Authorization invalid"), 401
+# Readings, logging and polling methods
 
-        # get reading from body
-        try:
-            data = request.get_json()
+# Fetch readings for plotting
+@app.route("/reading", methods=["GET"])
+def get_reading():
+    # read input to get time frame required
+    try:
+        since_time = int(request.args.get("since", time.time()))
+    except ValueError:
+        return jsonify(error="Time frame since variable must be an integer in seconds")
 
-            if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), (int)):
-                return jsonify(error="Reading incorrectly formatted"), 400
+    # get readings
+    readings = get_readings(since_time)
+
+    # return json data
+    return jsonify(readings)
+
+# Add readings from bot
+@app.route("/reading", methods=["POST"])
+def post_reading():
+    # check if client has permission
+    if not is_authenticated(request.headers.get("Authorization")):
+        return jsonify(error="Authorization invalid"), 401
+
+    # check the body is of valid format
+    try:
+        data = request.get_json()
+
+        if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), (int)):
+            return jsonify(error="Reading incorrectly formatted"), 400
+
+    except Exception:
+        return jsonify(error="Invalid data format"), 400
+
+    # extract information from body and add reading to database
+    time_stamp    = data.get("time")
+    soil_moisture = data.get("soil_moisture")
+
+    add_reading(time_stamp, soil_moisture)
+
+    return jsonify(status="ok"), 200
+
+# Watering, logging and polling methods
 
 
-            time_stamp = data.get("time")
-            soil_moisture = data.get("soil_moisture")
+# Fetch most recent watering times
+@app.route("/water", methods=["GET"])
+def get_water():
+    last_watered = get_last_watered()
 
-            # insert data into SQL db
-            with sqlite3.connect(DB_PATH) as conn:
-                cur = conn.cursor()
+    # check that there is an event to publish
+    if not last_watered:
+        return jsonify(error="No water events"), 400
+    else:
+        return jsonify(last_watered)
 
-                insert_query = """
-                INSERT INTO readings (time, soil_moisture)
-                VALUES (?, ?);
-                """
-                reading_data = (time_stamp, soil_moisture)
+# Log water event
+@app.route("/water", methods=["POST"])
+def post_water():
+    # check if client has permission
+    if not is_authenticated(request.headers.get("Authorization")):
+        return jsonify(error="Authorization invalid"), 401
 
-                cur.execute(insert_query, reading_data)
-                conn.commit()
+    # check the body is of valid format
+    try:
+        data = request.get_json()
 
-        except Exception:
-            return jsonify(error="Invalid data format"), 400
+        if not isinstance(data.get("time"), int):
+            return jsonify(error="Event incorrectly formatted"), 400
 
-        return jsonify(status="ok"), 200
+    except Exception as e:
+        print(e)
+        return jsonify(error="Invalid data format"), 400
 
-    elif request.method == "GET":
-        """Return readings for ui display"""
-        now = time.time()
-        
-        # get since value from request or default to all values
-        try:
-            since = int(request.args.get("since", now))
-        except ValueError:
-            return jsonify(error="Since must be an integer in seconds")
-        
-        ago_time = now - since
+    # extract information from body and add event to database
+    time_stamp = data.get("time")
 
-        with sqlite3.connect(DB_PATH) as conn:
-            cur = conn.cursor()
+    add_water(time_stamp)
 
-            rows = cur.execute(
-                "SELECT * FROM readings WHERE time >= ? ORDER BY time ASC", 
-                (ago_time,)
-            ).fetchall()
+    # send success email to users
+    send_success_email(time_stamp)
 
-        data = [
-            {
-                "time": row[1],
-                "soil_moisture": row[2]
-            }
-            for row in rows
-        ]
+    return jsonify(status="ok"), 200
 
-        return jsonify(data)
-    
-"""Watering logging and polling methods"""
-@app.route("/water", methods=["POST", "GET"])
-def water():
-    if request.method == "POST":
-        """Update watering logs"""
-        auth_header = request.headers.get("Authorization")
+# Control routes for syncing with bot (timezones) and control (enabling/disabling water)
 
-        # check if client has permission to update water logs
-        if auth_header != f"Bearer {SECRET_TOKEN}":
-            return jsonify(error="Authorization invalid"), 401
+# Water enabled or disabled routes
+@app.route("/water/allowed", methods=["GET"])
+def water_allowed():
+    return jsonify(enabled=WATER_ENABLED), 200
 
-        # get log from body
-        try:
-            data = request.get_json()
+@app.route("/water/off", methods=["POST"])
+@basic_auth.required
+def water_off():
+    global WATER_ENABLED
+    WATER_ENABLED = False
+    return "", 204
 
-            if not isinstance(data.get("time"), (int)):
-                return jsonify(error="Event incorrectly formatted"), 400
+@app.route("/water/on", methods=["POST"])
+def water_on():
+    global WATER_ENABLED
+    WATER_ENABLED = True
+    return "", 204
 
-            time_stamp = data.get("time")
-
-            # insert data into SQL db
-            with sqlite3.connect(DB_PATH) as conn:
-                cur = conn.cursor()
-
-                insert_query = """
-                INSERT INTO water (time)
-                VALUES (?);
-                """
-                water_data = (time_stamp,)
-
-                cur.execute(insert_query, water_data)
-                conn.commit()
-
-        except Exception:
-            return jsonify(error="Invalid data format"), 400
-                
-        # import html template
-        BASE_DIR = Path(__file__).parent
-        template_path = BASE_DIR / "templates" / "water-email.html"
-        html_template = template_path.read_text(encoding="utf-8")
-        
-        # format time
-        dt = datetime.datetime.fromtimestamp(time_stamp)
-        time_str = dt.strftime("%H:%M")
-        html_body = html_template.replace("{{ time }}", time_str).replace("{{ domain }}", DOMAIN)
-
-        # send email to notify of watering
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = f"Watered (WALTER) {time_str}"
-        msg["From"] = formataddr((EMAIL_NAME, EMAIL_ADDR))
-
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
-
-        recipients = os.getenv("NOTIFY_EMAILS", "").split(",")
-        
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-            smtp.starttls()
-            smtp.login(SMTP_USERNAME, SMTP_PWD)
-            for address in recipients:
-                msg["To"] = address
-                smtp.sendmail(
-                    "walter@isaacbarker.net",
-                    address,
-                    msg.as_string()
-                )
-        return jsonify(status="ok"), 200
-    
-    elif request.method == "GET":
-        """Return most recent water event"""
-        with sqlite3.connect(DB_PATH) as conn:
-            cur = conn.cursor()
-
-            row = cur.execute("""
-                SELECT * FROM water
-                ORDER BY id DESC
-                LIMIT 1;
-            """).fetchall()
-
-        if len(row) == 0:
-            return jsonify(error="No water events"), 400
-
-        time_stamp = row[0][1]
-        data = {"last_watered": time_stamp}
-
-        return jsonify(data)
-    
-"""Water enabled or disabled route"""
-@app.route("/can-water", methods=["GET"])
-def can_water():
-    return jsonify(enabled=WATER_ENABLED, status="ok"), 200
-
-"""Error alert route"""
+# Error alerting route to send to mail list
 @app.route("/alert", methods=["POST"])
 def alert():
-    auth_header = request.headers.get("Authorization")
-
-    # check if client has permission to update water logs
-    if auth_header != f"Bearer {SECRET_TOKEN}":
+    # check if client has permission
+    if not is_authenticated(request.headers.get("Authorization")):
         return jsonify(error="Authorization invalid"), 401
-    
+
     # get log from body
     try:
         data = request.get_json()
@@ -219,72 +161,24 @@ def alert():
         if not isinstance(data.get("time"), (int)) or not isinstance(data.get("error"), (str)):
             return jsonify(error="Event incorrectly formatted"), 400
 
-        time_stamp = data.get("time")
-        error_msg = data.get("error")
-
     except Exception:
         return jsonify(error="Invalid data format"), 400
-            
-    # import html template
-    BASE_DIR = Path(__file__).parent
-    template_path = BASE_DIR / "templates" / "error-email.html"
-    html_template = template_path.read_text(encoding="utf-8")
-    
-    # format time
-    dt = datetime.datetime.fromtimestamp(time_stamp)
-    time_str = dt.strftime("%H:%M")
-    html_body = html_template.replace("{{ time }}", time_str).replace("{{ domain }}", DOMAIN).replace("{{ error_msg }}", error_msg)
 
-    # send email to notify of watering
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"Warning (WALTER) {time_str}"
-    msg["From"] = formataddr((EMAIL_NAME, EMAIL_ADDR))
+    # extract error message and send email
+    time_stamp = data.get("time")
+    error_msg  = data.get("error")
 
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+    send_error_email(time_stamp, error_msg)
 
-    recipients = os.getenv("NOTIFY_EMAILS", "").split(",")
-    
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-        smtp.starttls()
-        smtp.login(SMTP_USERNAME, SMTP_PWD)
-        for address in recipients:
-            msg["To"] = address
-            smtp.sendmail(
-                EMAIL_ADDR,
-                address,
-                msg.as_string()
-            )
     return jsonify(status="ok"), 200
 
-"""Time Keeping Route"""
+# Time keeping route
 @app.route("/timezone", methods=["GET"])
 def get_time():
-    dt_tz = datetime.datetime.now().astimezone()
+    dt_tz = datetime.now().astimezone()
     return jsonify(local_offset=dt_tz.utcoffset().total_seconds())
 
+# Running Server & DB configuration
 if __name__ == "__main__":
-    # init db and insert suitable table to log readings
-    with sqlite3.connect(DB_PATH) as conn:
-        cur = conn.cursor()
-
-        # insert readings table
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS readings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,      
-                time INTEGER NOT NULL,          -- Epoch seconds
-                soil_moisture REAL NOT NULL      
-            )
-        """)
-
-        # insert watering log
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS water (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                time INTEGER NOT NULL           -- Epoch seconds
-            )         
-        """)
-
-        conn.commit()
-
-if __name__ == "__main__":
-    app.run()
+    setup_database()
+    app.run(host="0.0.0.0", debug=True)
