@@ -6,16 +6,25 @@ from flask import Flask, render_template, jsonify, request
 from flask_basicauth import BasicAuth
 from datetime import datetime
 
-from web.web_helpers.auth_helper import is_authenticated
-from web.web_helpers.database_helper import get_readings, add_reading, get_last_watered, add_water, setup_database
-from web.web_helpers.email_helper import send_success_email, send_error_email
-from web.web_helpers.watering_helper import set_water_enabled, is_water_enabled
+from web_helpers.auth_helper import is_authenticated
+from web_helpers.database_helper import get_readings, add_reading, get_last_watered, add_water, setup_database, \
+    get_setting
+from web_helpers.email_helper import send_success_email, send_error_email
+from web_helpers.watering_helper import set_water_enabled, is_water_enabled
 
 # Serves web server for WALTER
 
 # Environment variables
 load_dotenv(find_dotenv(".env"))
 SECRET_TOKEN  = os.getenv("SECRET_TOKEN")
+
+setup_database()
+
+# Initialise the value if it is not already present
+INITIAL_WATER_ENABLED = os.getenv("WATER_ENABLED").lower() in ("true", "1", "yes", "on")
+
+if not get_setting("water_enabled"):
+    set_water_enabled(INITIAL_WATER_ENABLED)
 
 # Initialise Flask App & Basic Auth
 
@@ -70,10 +79,11 @@ def post_reading():
     try:
         data = request.get_json()
 
-        if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), (int)):
+        if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), int):
             return jsonify(error="Reading incorrectly formatted"), 400
 
-    except Exception:
+    except Exception as e:
+        print(e)
         return jsonify(error="Invalid data format"), 400
 
     # extract information from body and add reading to database
@@ -178,5 +188,4 @@ def get_time():
 
 # Running Server & DB configuration
 if __name__ == "__main__":
-    setup_database()
     app.run(host="0.0.0.0", debug=True)

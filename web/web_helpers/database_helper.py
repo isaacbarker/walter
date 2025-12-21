@@ -2,7 +2,6 @@ import os
 import sqlite3
 import time
 from dotenv import load_dotenv, find_dotenv
-from datetime import datetime
 
 # Database configuration and system for storing watering data
 
@@ -81,7 +80,10 @@ def get_setting(key: str):
 
         row = cur.fetchone()
 
-    return row[0]
+    if row:
+        return row[0]
+    else:
+        return None
 
 # Getters of data
 
@@ -116,7 +118,7 @@ def get_last_watered():
 
         row = cur.execute("""
             SELECT * FROM water
-            ORDER BY time ASC, id DESC LIMIT 1
+            ORDER BY time DESC, id DESC LIMIT 1
         """).fetchall()
 
     if len(row) == 0: return None

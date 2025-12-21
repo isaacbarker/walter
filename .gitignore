@@ -13,4 +13,5 @@ lib
 .micropico
 sh1106.py
 walter-web.tar
+walterbot.tar
 config.py

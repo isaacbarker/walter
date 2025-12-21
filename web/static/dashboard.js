@@ -36,6 +36,7 @@ function enableWater() {
 }
 
 // Truth state polling
+getWaterState();
 setInterval(getWaterState, 2000);
 
 // Event listeners
