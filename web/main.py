@@ -180,11 +180,16 @@ def alert():
 
     return jsonify(status="ok"), 200
 
-# Time keeping route
+# Time keeping routes
 @app.route("/timezone", methods=["GET"])
-def get_time():
+def get_time_zone():
     dt_tz = datetime.now().astimezone()
     return jsonify(local_offset=dt_tz.utcoffset().total_seconds())
+
+@app.route("/time", methods=["GET"])
+def get_time():
+    seconds = time.time()
+    return jsonify(time=seconds)
 
 # Running Server & DB configuration
 if __name__ == "__main__":

@@ -202,19 +202,15 @@ def update_display(soil_moisture, last_watered, local_offset):
 
 ## Run time loop
 async def loop():
-    
-    wlan = connect(config.SSID, config.PSK, config.COUNTRY)
 
     while True:
         # connect to network
         print(f"Connecting to network {config.SSID}")
+        wlan = connect(config.SSID, config.PSK, config.COUNTRY)
                 
         if not wlan:
             print(f"Connection timeout, skipping this reading!")
             continue
-        
-        if wlan.status() != 3:
-            wlan = connect(config.SSID, config.PSK, config.COUNTRY)
         
         last_watered = get_last_watered()
 
@@ -252,6 +248,10 @@ async def loop():
         # update display
         print("Updating Display")
         update_display(relative_moisture, last_watered, local_offset)
+        
+        # disconnect from wifi
+        wlan.disconnect()
+        wlan.active(False)
 
         # sleep for interval
         await asyncio.sleep_ms(config.SAMPLE_INTERVAL)
