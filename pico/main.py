@@ -1,5 +1,4 @@
 import time
-
 from machine import Pin, I2C, ADC
 from sh1106 import SH1106_I2C
 import network
@@ -76,9 +75,6 @@ def connect(ssid: str, psk: str, country="GB", max_wait=30) -> network.WLAN:
     if wlan.status() != 3:
         return None # connection not successful
 
-    # calibrate RTC
-    ntptime.settime()
-
     return wlan
 
 ## API communications
@@ -109,10 +105,17 @@ def get_tz_offset() -> float:
     gc.collect()
     return offset
 
+# Time
+def get_time() -> float:
+    response = requests.get(f"{config.API_ROUTE}time")
+    time     = response.json().get("time", 0.0)
+    response.close()
+    gc.collect()
+    return time
+
 # Log Reading
 def post_reading(soil_moisture):
     data = {
-        "time": time.time(),
         "soil_moisture": round(soil_moisture, 2)
     }
     
@@ -124,13 +127,7 @@ def post_reading(soil_moisture):
     
 # Log Watering
 def post_watering():
-    data = {
-        "time": time.time()
-    }
-    
-    json_data = json.dumps(data)
-
-    response = requests.post(f"{config.API_ROUTE}water", data=json_data, headers=get_headers(len(json_data)))
+    response = requests.post(f"{config.API_ROUTE}water", headers={"Authorization": f"Bearer {config.SECRET_TOKEN}"})
     response.close()
     gc.collect()
 
@@ -153,7 +150,6 @@ def is_water_allowed():
 # Sends alert if an error occurs
 def alert(error_msg):
     data = {
-        "time": time.time(),
         "error": error_msg
     }
     
@@ -166,7 +162,7 @@ def alert(error_msg):
 ## Sensors, Pump and Screen logic
 
 # Read soil moisture from sensor
-def get_reading():
+def get_reading() -> float:
     pd = soil_sensor.read_u16() * 3.3 / 65535
     relative_moisture = 100 - (
                 (pd - config.SOIL_WET_BOUNDARY) / (config.SOIL_DRY_BOUNDARY - config.SOIL_WET_BOUNDARY) * 100)
@@ -189,12 +185,12 @@ def update_display(soil_moisture, last_watered, local_offset):
     # update soil moisture value and last watered on display
     display.text(f"Moisture {round(soil_moisture)}%", 8, 32)
 
-    if (time.time() - last_watered) > 24 * 60 * 60:  # display no. days since watering
+    if ((get_time() + local_offset) - last_watered) > 24 * 60 * 60:  # display no. days since watering
         delta_t = time.time() - last_watered
         days    = round(delta_t // (24 * 60 * 60))
         display.text(f"Watered: {days}d", 8, 48)
     else:  # display time since watering
-        _, _, _, hour, minute, _, _, _ = time.localtime(last_watered + int(local_offset))
+        _, _, _, hour, minute, _, _, _ = time.localtime(int(last_watered + local_offset))
         display.text(f"Watered: {(hour):02}:{minute:02}", 8, 48)
 
     # commit changes
@@ -209,10 +205,16 @@ async def loop():
         wlan = connect(config.SSID, config.PSK, config.COUNTRY)
                 
         if not wlan:
-            print(f"Connection timeout, skipping this reading!")
+            print("WiFi connection failed — resetting interface")
+            wlan = network.WLAN(network.STA_IF)  # re-grab interface
+            wlan.active(False)
+            time.sleep(1)
+            wlan.active(True)
+            await asyncio.sleep(5)  # backoff so router + chip can recover
             continue
         
         last_watered = get_last_watered()
+        current_time         = get_time()
 
         # take soil moisture reading
         print("Taking reading")
@@ -221,7 +223,7 @@ async def loop():
 
         # determine time
         local_offset = get_tz_offset()
-        _, _, _, hour, _, _, _, _ = time.localtime(time.time() + int(local_offset))
+        _, _, _, hour, _, _, _, _ = time.localtime(int(current_time + local_offset))
         
         # water is soil moisture is below threshold, the time is day and the api allows it
         if relative_moisture <= config.SOIL_THRESHOLD_MIN and hour >= 7 and hour <= 21 and is_water_allowed():
@@ -234,8 +236,8 @@ async def loop():
             # check watering has been effective if not trigger error
             if int(new_relative_moisture) >= int(relative_moisture):
                 print("Recording watering")
-                last_watered = time.time()
                 post_watering() # record watering
+                last_watered = current_time
             else:
                 alert("Watering unsuccessful, please check reseviour and/or the pump is attached.")
             

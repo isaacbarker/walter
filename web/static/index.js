@@ -10,15 +10,16 @@ if (window.innerWidth < 1080) {
 }
 
 let chart = new Chart(ctx, {
-    type: "line",
+    type: "bar",
     data: {    
         labels: [],
         datasets: [{
             data: [],
             fill: true,
-            borderColor: '#8ec07c',
+            backgroundColor: [ '#8ec07c' ],
+            borderColor: '#458588',
             tension: 0.1
-        }]
+        }],
     },
     options: {
         responsive: false,

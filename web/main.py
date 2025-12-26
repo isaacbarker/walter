@@ -79,7 +79,7 @@ def post_reading():
     try:
         data = request.get_json()
 
-        if not isinstance(data.get("soil_moisture"), (int, float)) or not isinstance(data.get("time"), int):
+        if not isinstance(data.get("soil_moisture"), (int, float)):
             return jsonify(error="Reading incorrectly formatted"), 400
 
     except Exception as e:
@@ -87,7 +87,7 @@ def post_reading():
         return jsonify(error="Invalid data format"), 400
 
     # extract information from body and add reading to database
-    time_stamp    = data.get("time")
+    time_stamp    = time.time()
     soil_moisture = data.get("soil_moisture")
 
     add_reading(time_stamp, soil_moisture)
@@ -115,19 +115,8 @@ def post_water():
     if not is_authenticated(request.headers.get("Authorization")):
         return jsonify(error="Authorization invalid"), 401
 
-    # check the body is of valid format
-    try:
-        data = request.get_json()
-
-        if not isinstance(data.get("time"), int):
-            return jsonify(error="Event incorrectly formatted"), 400
-
-    except Exception as e:
-        print(e)
-        return jsonify(error="Invalid data format"), 400
-
     # extract information from body and add event to database
-    time_stamp = data.get("time")
+    time_stamp = time.time()
 
     add_water(time_stamp)
 
@@ -166,14 +155,14 @@ def alert():
     try:
         data = request.get_json()
 
-        if not isinstance(data.get("time"), (int)) or not isinstance(data.get("error"), (str)):
+        if not isinstance(data.get("error"), (str)):
             return jsonify(error="Event incorrectly formatted"), 400
 
     except Exception:
         return jsonify(error="Invalid data format"), 400
 
     # extract error message and send email
-    time_stamp = data.get("time")
+    time_stamp = time.time()
     error_msg  = data.get("error")
 
     send_error_email(time_stamp, error_msg)
