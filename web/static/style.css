@@ -1,15 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&family=Gemunu+Libre:wght@200..800&display=swap');
 
 :root {
-    --bg: #282828;
-    --bg2: #3c3836;
+    --bg: #0e120b;
+    --bg2: #0b2723;
     --header: #8ec07c;
-    --text: #fbf1c7;
+    --text: #fffef2;
     --blue: #83a598;
     --blue-dark: #458588;
 }
 
 html, body {
+    margin: 0;
     margin: 0;
     padding: 0;
     background-color: var(--bg);
@@ -74,7 +75,7 @@ h2 {
 }
 
 .header__title__container {
-    margin: 0 .25em 1em .25em;
+    margin: 1em .25em 1em .25em;
     text-align: center;
 }
 
@@ -110,8 +111,8 @@ h2 {
 .moisture__container {
     padding: 2em;
     border-radius: 1em;
-    background: linear-gradient(45deg, var(--blue), var(--blue-dark));
-    border: 5px solid var(--blue-dark);
+    background: var(--bg2);
+    filter: drop-shadow(0 0 0.75rem #000000);
 }
 
 .controls__container {

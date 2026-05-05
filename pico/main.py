@@ -214,7 +214,7 @@ async def loop():
             continue
         
         last_watered = get_last_watered()
-        current_time         = get_time()
+        current_time = get_time()
 
         # take soil moisture reading
         print("Taking reading")
